@@ -1,0 +1,6 @@
+{
+  "boggle" : {
+    "name" : "Boggle",
+    "command" : "ruby boggle/boggle.rb",
+  }
+}
