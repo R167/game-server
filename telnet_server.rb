@@ -34,7 +34,6 @@ module GameServer
                 connection.print "What game would you like to play? "
                 choice = connection.gets.chomp.strip.downcase
                 if choice.to_i >= 1 && choice.to_i <= GAMES.length
-                  puts GAMES.inspect
                   game = GAMES[choice.to_i - 1]
                   break
                 end
