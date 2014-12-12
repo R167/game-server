@@ -12,10 +12,8 @@ module GameServer
   ].freeze
   
   class Server
-    PORT = 9000
-    
-    def initialize(port=nil)
-      @server = TCPServer.new(port || PORT)
+    def initialize(port)
+      @server = TCPServer.new(port)
       @server.setsockopt(:SOCKET, :REUSEADDR, true)
       @lock = Mutex.new
       # refresh_games
@@ -25,6 +23,7 @@ module GameServer
       Socket.accept_loop(@server) do |connection|
         Thread.new do
           begin
+            puts "[#{Time.now}] #{connection.remote_address.inspect} connected"
             loop do
               connection.print "Would you like to play a game? [Y/n] "
               play = connection.gets.chomp.strip.downcase
@@ -49,14 +48,15 @@ module GameServer
                   connection.puts "No such game!"
                 end
               end
-              puts "Going to run"
               run_game(game, connection)
             end
             connection.puts "Goodbye!"
           rescue => e
+            puts "[#{Time.now}] #{connection.remote_address.inspect} had an error"
             puts e.inspect
+            connection.puts "There has been an error. Sorry."
           ensure
-            puts "WTF"
+            puts "[#{Time.now}] #{connection.remote_address.inspect} disconnected"
             connection.close
           end
         end
@@ -72,8 +72,10 @@ module GameServer
     
     def run_game(game, connection)
       connection.print "\n#{'=' * 10} Starting #{game[:name]} #{'=' * 10}\n\n"
+      puts "[#{Time.now}] #{connection.remote_address.inspect} is playing #{game[:name]}"
       pid = Process.spawn(game[:exec], :in => connection.to_io, :out => connection.to_io)
       Process.wait(pid)
+      puts "[#{Time.now}] #{connection.remote_address.inspect} finished playing #{game[:name]}"
       connection.print "\n"
     end
     
@@ -85,5 +87,6 @@ module GameServer
 end
 
 if __FILE__ == $0
-  GameServer::Server.new.serve
+  port = (ARGV[0].to_i > 1024 ? ARGV[0].to_i : 9001)
+  GameServer::Server.new(port).serve
 end
